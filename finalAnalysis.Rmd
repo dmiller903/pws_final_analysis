@@ -1,0 +1,73 @@
+---
+title: "PWS 588 Final Analysis"
+author: "Dustin Miller"
+date: "4/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Docker container for qiime2 analyses 
+
+To use Docker, first install [docker pull qiime2/core](Docker Desktop)
+
+Once set up on your system, get the qiime2 container using this command:
+
+```{bash, eval = F}
+docker pull qiime2/core
+```
+
+## This r chunk sets a system variable that allows easy reference to the Docker and assigns a working directory within the Docker
+
+```{r}
+Sys.setenv(myDocker = "docker run -v /Users/dmill903/Downloads:/data/proj -w /data/proj -t qiime2/core")
+```
+
+## Import data
+
+```{bash}
+$myDocker qiime tools import \
+  --type SampleData[SequencesWithQuality] \
+  --input-path /data/proj/combined_files_2 \
+  --input-format CasavaOneEightSingleLanePerSampleDirFmt \
+  --output-path pws588_analysis/demux-single-end.qza
+```
+
+## Dereplicate
+
+```{bash}
+$myDocker qiime vsearch dereplicate-sequences \
+  --i-sequences pws588_analysis/demux-single-end.qza \
+  --o-dereplicated-table pws588_analysis/tablev.qza \
+  --o-dereplicated-sequences pws588_analysis/rep-seqsv.qza
+```
+
+## de Novo Cluster
+
+```{bash}
+$myDocker qiime vsearch cluster-features-de-novo \
+  --i-table pws588_analysis/tablev.qza \
+  --i-sequences pws588_analysis/rep-seqsv.qza \
+  --p-perc-identity 0.85 \
+  --o-clustered-table pws588_analysis/table-dn-85.qza \
+  --o-clustered-sequences pws588_analysis/rep-seqs-dn-85.qza
+```
+
+## Summarize
+
+```{bash}
+$myDocker qiime feature-table summarize \
+  --i-table pws588_analysis/table-dn-85.qza \
+  --o-visualization pws588_analysis/table-dn-85.qzv
+```
+
+```{bash}
+$myDocker qiime phylogeny align-to-tree-mafft-fasttree \
+  --i-sequences pws588_analysis/rep-seqsv.qza \
+  --o-alignment pws588_analysis/aligned-rep-seqs.qza \
+  --o-masked-alignment pws588_analysis/masked-aligned-rep-seqs.qza \
+  --o-tree pws588_analysis/unrooted-tree.qza \
+  --o-rooted-tree pws588_analysis/rooted-tree.qza
+```
