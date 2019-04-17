@@ -25,12 +25,17 @@ docker pull qiime2/core
 Sys.setenv(myDocker = "docker run -v /Users/dmill903/Downloads:/data/proj -w /data/proj -t qiime2/core")
 ```
 
+```{bash}
+$myDocker ls
+```
+
+
 ## Import data
 
 ```{bash}
 $myDocker qiime tools import \
   --type SampleData[SequencesWithQuality] \
-  --input-path /data/proj/combined_files_2 \
+  --input-path /data/proj/pws588_analysis/combined_files/ \
   --input-format CasavaOneEightSingleLanePerSampleDirFmt \
   --output-path pws588_analysis/demux-single-end.qza
 ```
@@ -63,11 +68,84 @@ $myDocker qiime feature-table summarize \
   --o-visualization pws588_analysis/table-dn-85.qzv
 ```
 
+## Generate a tree for phylogenetic diversity analyses
+
 ```{bash}
 $myDocker qiime phylogeny align-to-tree-mafft-fasttree \
-  --i-sequences pws588_analysis/rep-seqsv.qza \
+  --i-sequences pws588_analysis/rep-seqs-dn-85.qza \
   --o-alignment pws588_analysis/aligned-rep-seqs.qza \
   --o-masked-alignment pws588_analysis/masked-aligned-rep-seqs.qza \
   --o-tree pws588_analysis/unrooted-tree.qza \
   --o-rooted-tree pws588_analysis/rooted-tree.qza
 ```
+
+## Alpha and beta diversity analysis
+
+```{bash}
+$myDocker qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny pws588_analysis/rooted-tree.qza \
+  --i-table pws588_analysis/table-dn-85.qza \
+  --p-sampling-depth 45 \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --output-dir pws588_analysis/core-metrics-results \
+```
+
+```{bash}
+# Richness
+$myDocker qiime diversity alpha-group-significance \
+  --i-alpha-diversity pws588_analysis/core-metrics-results/faith_pd_vector.qza \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --o-visualization pws588_analysis/core-metrics-results/faith-pd-group-significance.qzv
+
+# Evenness
+$myDocker qiime diversity alpha-group-significance \
+  --i-alpha-diversity pws588_analysis/core-metrics-results/evenness_vector.qza \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --o-visualization pws588_analysis/core-metrics-results/evenness-group-significance.qzv
+```
+
+### PCoA
+
+```{bash}
+$myDocker qiime emperor plot \
+  --i-pcoa pws588_analysis/core-metrics-results/unweighted_unifrac_pcoa_results.qza \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --o-visualization pws588_analysis/core-metrics-results/unweighted-unifrac-emperor-time-point.qzv
+
+$myDocker qiime emperor plot \
+  --i-pcoa pws588_analysis/core-metrics-results/bray_curtis_pcoa_results.qza \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --o-visualization pws588_analysis/core-metrics-results/bray-curtis-emperor-time-point.qzv
+```
+
+## Bar Plot
+
+```{bash}
+$myDocker qiime feature-classifier classify-sklearn \
+  --i-classifier pws588_analysis/gg-13-8-99-515-806-nb-classifier.qza \
+  --i-reads pws588_analysis/rep-seqs-dn-85.qza \
+  --o-classification pws588_analysis/taxonomy.qza
+
+$myDocker qiime metadata tabulate \
+  --m-input-file pws588_analysis/taxonomy.qza \
+  --o-visualization pws588_analysis/taxonomy.qzv
+```
+
+```{bash}
+$myDocker qiime taxa barplot \
+  --i-table pws588_analysis/table-dn-85.qza \
+  --i-taxonomy pws588_analysis/taxonomy.qza \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --o-visualization pws588_analysis/taxa-bar-plots.qzv
+```
+
+## Permanova
+
+```{bash, eval = F}
+$myDocker qiime diversity beta-group-significance \
+  --i-distance-matrix pws588_analysis/core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --m-metadata-column subject-id \
+  --o-visualization pws588_analysis/core-metrics-results/unweighted-unifrac-subject-id-significance.qzv
+```
+
