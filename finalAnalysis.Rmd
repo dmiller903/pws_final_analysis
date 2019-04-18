@@ -195,4 +195,6 @@ $myDocker qiime diversity beta-group-significance \
 
 Microbial community difference between time points is not significant based on a p-value of 0.931.
 
-In conclusion, we hypothesized that Coke, due to its acidity and high sugar content, would affect the microbial composition of the human mouth. However, our findings did not support our hypothesis. Individual identity best explained bacterial composition rather than treatment and ethnicity.  
+## Conclusion
+
+We hypothesized that Coke, due to its acidity and high sugar content, would affect the microbial composition of the human mouth. However, our findings did not support our hypothesis. Individual identity best explained bacterial composition rather than treatment and ethnicity.  
