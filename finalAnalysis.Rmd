@@ -21,7 +21,7 @@ Once set up on your system, get the qiime2 container using this command:
 docker pull qiime2/core
 ```
 
-### This r chunk sets a system variable that allows easy reference to the Docker and assigns a working directory within the Docker. -v mounts user's volume to Docker's volume
+This r chunk sets a system variable that allows easy reference to the Docker and assigns a working directory within the Docker. -v mounts user's volume to Docker's volume:
 
 ```{r, eval = F}
 Sys.setenv(myDocker = "docker run -v /Users/dmill903/Downloads:/data/proj -w /data/proj -t qiime2/core")
