@@ -1,7 +1,7 @@
 ---
 title: "PWS 588 Final Analysis"
-author: "Dustin Miller"
-date: "4/12/2019"
+author: "Dustin Miller, Ify Nwosu, Scott Collins"
+date: "4/17/2019"
 output: html_document
 ---
 
@@ -21,18 +21,13 @@ docker pull qiime2/core
 
 ## This r chunk sets a system variable that allows easy reference to the Docker and assigns a working directory within the Docker
 
-```{r}
+```{r, eval = F}
 Sys.setenv(myDocker = "docker run -v /Users/dmill903/Downloads:/data/proj -w /data/proj -t qiime2/core")
 ```
 
-```{bash}
-$myDocker ls
-```
-
-
 ## Import data
 
-```{bash}
+```{bash, eval = F}
 $myDocker qiime tools import \
   --type SampleData[SequencesWithQuality] \
   --input-path /data/proj/pws588_analysis/combined_files/ \
@@ -42,7 +37,7 @@ $myDocker qiime tools import \
 
 ## Dereplicate
 
-```{bash}
+```{bash, eval = F}
 $myDocker qiime vsearch dereplicate-sequences \
   --i-sequences pws588_analysis/demux-single-end.qza \
   --o-dereplicated-table pws588_analysis/tablev.qza \
@@ -51,7 +46,7 @@ $myDocker qiime vsearch dereplicate-sequences \
 
 ## de Novo Cluster
 
-```{bash}
+```{bash, eval = F}
 $myDocker qiime vsearch cluster-features-de-novo \
   --i-table pws588_analysis/tablev.qza \
   --i-sequences pws588_analysis/rep-seqsv.qza \
@@ -60,17 +55,17 @@ $myDocker qiime vsearch cluster-features-de-novo \
   --o-clustered-sequences pws588_analysis/rep-seqs-dn-85.qza
 ```
 
-## Summarize
+## Summarize table
 
-```{bash}
+```{bash, eval = F}
 $myDocker qiime feature-table summarize \
   --i-table pws588_analysis/table-dn-85.qza \
   --o-visualization pws588_analysis/table-dn-85.qzv
 ```
 
-## Generate a tree for phylogenetic diversity analyses
+## Generate phylogenetic diversity tree
 
-```{bash}
+```{bash, eval = F}
 $myDocker qiime phylogeny align-to-tree-mafft-fasttree \
   --i-sequences pws588_analysis/rep-seqs-dn-85.qza \
   --o-alignment pws588_analysis/aligned-rep-seqs.qza \
@@ -81,7 +76,7 @@ $myDocker qiime phylogeny align-to-tree-mafft-fasttree \
 
 ## Alpha and beta diversity analysis
 
-```{bash}
+```{bash, eval = F}
 $myDocker qiime diversity core-metrics-phylogenetic \
   --i-phylogeny pws588_analysis/rooted-tree.qza \
   --i-table pws588_analysis/table-dn-85.qza \
@@ -90,37 +85,46 @@ $myDocker qiime diversity core-metrics-phylogenetic \
   --output-dir pws588_analysis/core-metrics-results \
 ```
 
-```{bash}
-# Richness
-$myDocker qiime diversity alpha-group-significance \
-  --i-alpha-diversity pws588_analysis/core-metrics-results/faith_pd_vector.qza \
+At a sampling depth of 45, we retained 2,250 (30.26%) sequences in 50 (43.10%) samples at the specified sampling depth.
+
+## PCoA
+
+```{bash, eval = F}
+$myDocker qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny pws588_analysis/rooted-tree.qza \
+  --i-table pws588_analysis/table-dn-85.qza \
+  --p-sampling-depth 25 \
   --m-metadata-file pws588_analysis/coke_metadata.tsv \
-  --o-visualization pws588_analysis/core-metrics-results/faith-pd-group-significance.qzv
-
-# Evenness
-$myDocker qiime diversity alpha-group-significance \
-  --i-alpha-diversity pws588_analysis/core-metrics-results/evenness_vector.qza \
-  --m-metadata-file pws588_analysis/coke_metadata.tsv \
-  --o-visualization pws588_analysis/core-metrics-results/evenness-group-significance.qzv
-```
-
-### PCoA
-
-```{bash}
+  --output-dir pws588_analysis/pcoa-metrics-results \
+  
 $myDocker qiime emperor plot \
-  --i-pcoa pws588_analysis/core-metrics-results/unweighted_unifrac_pcoa_results.qza \
+  --i-pcoa pws588_analysis/pcoa-metrics-results/unweighted_unifrac_pcoa_results.qza \
   --m-metadata-file pws588_analysis/coke_metadata.tsv \
-  --o-visualization pws588_analysis/core-metrics-results/unweighted-unifrac-emperor-time-point.qzv
+  --p-custom-axes time-point \
+  --o-visualization pws588_analysis/pcoa-metrics-results/unweighted-unifrac-emperor-time-point.qzv
 
 $myDocker qiime emperor plot \
-  --i-pcoa pws588_analysis/core-metrics-results/bray_curtis_pcoa_results.qza \
+  --i-pcoa pws588_analysis/pcoa-metrics-results/bray_curtis_pcoa_results.qza \
   --m-metadata-file pws588_analysis/coke_metadata.tsv \
-  --o-visualization pws588_analysis/core-metrics-results/bray-curtis-emperor-time-point.qzv
+  --p-custom-axes time-point \
+  --o-visualization pws588_analysis/pcoa-metrics-results/bray-curtis-emperor-time-point.qzv
 ```
+
+For these PCoA plots, we reduced the sampling depth to 25 which retained 1,800 (24.21%) sequences in 72 (62.07%) samples at the specified sampling depth.
+
+![PCoA-unweighted](/Users/dmill903/Downloads/pws588_analysis/pcoa-metrics-results/unweighted-unifrac-emperor-time-point.png)
+
+![PCoA-Bray curtis](/Users/dmill903/Downloads/pws588_analysis/pcoa-metrics-results/bray-curtis-emperor-time-point.png)
+
+For the unweighted PCoA, there is clustering of the white ethnicity at time point 1. By time point 2 the white ethnicity cluster moves up and starts to spread out more. Time points 3 and 5 are most diverse among the clustered time groups. By the 6th time point the white ethnicity cluster move back together. 
+
+For the weighted PCoA, when considering abundances, the clusterings start to become more distant, relative to ethnicity. Time points 3 and 5 contain  clusterings that are much closer together than in the unweighted PCoA, signifying the unweighted PCoA is influenced by under-represented taxa.
+
+We couldn't find any significant clusterings for treatment group, sampling group (Ify's samples vs Dustin's vs Scott's), and individual subjects.
 
 ## Bar Plot
 
-```{bash}
+```{bash, eval = F}
 $myDocker qiime feature-classifier classify-sklearn \
   --i-classifier pws588_analysis/gg-13-8-99-515-806-nb-classifier.qza \
   --i-reads pws588_analysis/rep-seqs-dn-85.qza \
@@ -129,9 +133,7 @@ $myDocker qiime feature-classifier classify-sklearn \
 $myDocker qiime metadata tabulate \
   --m-input-file pws588_analysis/taxonomy.qza \
   --o-visualization pws588_analysis/taxonomy.qzv
-```
-
-```{bash}
+  
 $myDocker qiime taxa barplot \
   --i-table pws588_analysis/table-dn-85.qza \
   --i-taxonomy pws588_analysis/taxonomy.qza \
@@ -139,7 +141,13 @@ $myDocker qiime taxa barplot \
   --o-visualization pws588_analysis/taxa-bar-plots.qzv
 ```
 
+![taxonomic level 2 bar plot](/Users/dmill903/Downloads/pws588_analysis/taxa-bar-plots.png)
+
+At taxonomic level 2, we see Firmicutes, Proteobacteria, Actinobacteria, Bacteroidetes, Fusobacteria, with a large proportion being general bacteria. Of these, Firmicutes appear to be the most abundant which seems to be consistent with other oral microbiome studies. 
+
 ## Permanova
+
+### Subject ID Significance
 
 ```{bash, eval = F}
 $myDocker qiime diversity beta-group-significance \
@@ -149,3 +157,36 @@ $myDocker qiime diversity beta-group-significance \
   --o-visualization pws588_analysis/core-metrics-results/unweighted-unifrac-subject-id-significance.qzv
 ```
 
+![subject-id](/Users/dmill903/Downloads/pws588_analysis/core-metrics-results/unweighted-unifrac-subject-id-significance.png)
+
+Based on a p-value of .001, subjects are significantly different in terms of community composition. This is consistent with what we learned in class.
+
+### Treatment Group Significance
+
+```{bash, eval = F}
+$myDocker qiime diversity beta-group-significance \
+  --i-distance-matrix pws588_analysis/core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --m-metadata-column treatment-group \
+  --o-visualization pws588_analysis/core-metrics-results/unweighted-unifrac-treatment-group-significance.qzv
+```
+
+![treatment-group](/Users/dmill903/Downloads/pws588_analysis/core-metrics-results/unweighted-unifrac-treatment-group-significance.png)
+
+Microbial community difference between treatments and controls approaches significance based on a p-value of .087. We hypothesize that deeper sequencing and more samples would further elucidate these differences.
+
+### Time Point Significance
+
+```{bash, eval = F}
+$myDocker qiime diversity beta-group-significance \
+  --i-distance-matrix pws588_analysis/core-metrics-results/unweighted_unifrac_distance_matrix.qza \
+  --m-metadata-file pws588_analysis/coke_metadata.tsv \
+  --m-metadata-column time-factor \
+  --o-visualization pws588_analysis/core-metrics-results/unweighted-unifrac-time-point-significance.qzv
+```
+
+![time-point](/Users/dmill903/Downloads/pws588_analysis/core-metrics-results/unweighted-unifrac-time-point-significance.png)
+
+Microbial community difference between time points is not significant based on a p-value of 0.931.
+
+In conclusion, we hypothesized that Coke, due to its acidity and high sugar content, would affect the microbial composition of the human mouth. However, our findings did not support our hypothesis. Individual identity best explained bacterial composition rather than treatment and ethnicity.  
